@@ -32,7 +32,7 @@ Both commands support `--dry-run` for safe smoke verification: `/fork-yourself` 
 
 Terminal support:
 
-- `ghostty`: on macOS uses `open -na Ghostty.app --args -e <shell> -lc <script>` (Ghostty's CLI documents direct launch as unsupported on macOS); elsewhere tries `ghostty +new-window -e ...`, then `ghostty -e ...`.
+- `ghostty`: on macOS uses `open -na Ghostty.app --args --working-directory=<cwd> -e <shell> -lc <script>` (Ghostty's CLI documents direct launch as unsupported on macOS); elsewhere tries `ghostty +new-window -e ...`, then `ghostty --working-directory=<cwd> -e ...`.
 - `Terminal.app`: uses `osascript` to activate Terminal and run the fork command.
 - `alacritty`: uses `alacritty --working-directory <cwd> -e <shell> -lc <script>`, resolving the macOS app-bundle executable when no CLI shim is on `PATH`.
 - `wezterm`: tries `wezterm cli spawn --cwd <cwd> -- ...`, then `wezterm start --cwd <cwd> -- ...`, also resolving the macOS app-bundle executable when present.
