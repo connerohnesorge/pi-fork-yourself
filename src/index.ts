@@ -5,8 +5,9 @@ import { runForkedPrompt } from "./background.js";
 import { emptyUsageStats } from "./json-mode.js";
 import { materializeForkSession } from "./context.js";
 import { formatErrorMessage, formatRunResult, formatStartedMessage, formatTabOpenedMessage } from "./format.js";
+import { appendVisibleMessageToSourceSession } from "./parent-session.js";
 import { buildForkSessionName, buildPiArgs, getPiInvocation } from "./pi-invocation.js";
-import { makeShellScript, openTerminal, terminalLaunchesFor, terminalOrder } from "./terminals.js";
+import { makeTerminalShellScript, openTerminal, terminalLaunchesFor, terminalOrder } from "./terminals.js";
 import { CUSTOM_MESSAGE_TYPE, type ForkRunResult, type ForkSnapshot } from "./types.js";
 
 function contentToString(content: unknown): string {
@@ -33,6 +34,25 @@ function sendVisibleMessage(pi: ExtensionAPI, content: string, details?: unknown
     },
     { deliverAs: "followUp" },
   );
+}
+
+async function deliverBackgroundMessage(pi: ExtensionAPI, snapshot: ForkSnapshot, content: string, details?: unknown): Promise<void> {
+  try {
+    sendVisibleMessage(pi, content, details);
+    return;
+  } catch (error) {
+    // Non-interactive parents (and reloaded/replaced sessions) can stale the
+    // extension runtime before the background child finishes. Preserve the core
+    // contract by appending the visible custom message directly to the source
+    // session file when the live runtime can no longer accept sendMessage().
+    const appended = await appendVisibleMessageToSourceSession(snapshot, content, details).catch((appendError: unknown) => {
+      console.error("[pi-fork-yourself] failed to append background result to source session", appendError);
+      return false;
+    });
+    if (!appended) {
+      console.error("[pi-fork-yourself] failed to deliver background result", error);
+    }
+  }
 }
 
 async function resolvePrompt(args: string, ctxHasUI: boolean, ask: (title: string) => Promise<string | undefined>): Promise<string> {
@@ -64,15 +84,13 @@ function makeDryRunResult(snapshot: ForkSnapshot, prompt: string): ForkRunResult
 
 function startBackgroundRun(pi: ExtensionAPI, snapshot: ForkSnapshot, prompt: string): void {
   void runForkedPrompt(snapshot, prompt)
-    .then((result: ForkRunResult) => {
-      sendVisibleMessage(pi, formatRunResult(result), result);
-    })
-    .catch((error: unknown) => {
-      sendVisibleMessage(pi, formatErrorMessage("Forked Pi session failed before producing a result.", error), {
+    .then((result: ForkRunResult) => deliverBackgroundMessage(pi, snapshot, formatRunResult(result), result))
+    .catch((error: unknown) =>
+      deliverBackgroundMessage(pi, snapshot, formatErrorMessage("Forked Pi session failed before producing a result.", error), {
         snapshot,
         prompt,
-      });
-    });
+      }),
+    );
 }
 
 export default function forkYourselfExtension(pi: ExtensionAPI) {
@@ -150,7 +168,7 @@ export default function forkYourselfExtension(pi: ExtensionAPI) {
           name: buildForkSessionName(snapshot),
         });
         const invocation = getPiInvocation(piArgs);
-        const shellScript = makeShellScript(invocation.command, invocation.args, snapshot.cwd);
+        const shellScript = makeTerminalShellScript(invocation.command, invocation.args, snapshot.cwd);
         const launch = parsed.dryRun
           ? (() => {
               const terminal = terminalOrder(parsed.terminal)[0];

@@ -7,6 +7,7 @@ import {
   commandExists,
   findCommand,
   makeShellScript,
+  makeTerminalShellScript,
   shellQuote,
   terminalLaunchesFor,
   terminalOrder,
@@ -24,6 +25,23 @@ describe("shell quoting", () => {
     expect(makeShellScript("pi", ["--session", "/tmp/a b.jsonl"], "/repo dir")).toBe(
       "cd '/repo dir' && exec 'pi' '--session' '/tmp/a b.jsonl'",
     );
+  });
+
+  it("keeps terminal-tab launches open by default instead of execing pi", () => {
+    const script = makeTerminalShellScript("pi", ["--session", "/tmp/a b.jsonl"], "/repo dir", { SHELL: "/bin/zsh" });
+    expect(script).toContain("'pi' '--session' '/tmp/a b.jsonl'");
+    expect(script).toContain("forked Pi process exited with status $status");
+    expect(script).toContain("exec '/bin/zsh' -i");
+    expect(script).not.toContain("&& exec 'pi'");
+  });
+
+  it("can opt terminal-tab launches back into close-on-exit behavior", () => {
+    expect(
+      makeTerminalShellScript("pi", ["--session", "/tmp/a b.jsonl"], "/repo dir", {
+        SHELL: "/bin/zsh",
+        PI_FORK_YOURSELF_CLOSE_ON_EXIT: "1",
+      }),
+    ).toBe("cd '/repo dir' && exec 'pi' '--session' '/tmp/a b.jsonl'");
   });
 
   it("converts command arrays to shell commands", () => {

@@ -42,6 +42,8 @@ function makeContext(sessionDir: string, onIdle: () => void = () => undefined) {
     sessionManager: {
       getSessionDir: () => sessionDir,
       getSessionFile: () => join(sessionDir, "parent.jsonl"),
+      getSessionId: () => "parent-session-id",
+      getHeader: () => ({ type: "session", version: 3, id: "parent-session-id", timestamp: "2026-06-10T00:00:00.000Z", cwd: process.cwd() }),
       getLeafId: () => "leaf-123456789",
       getBranch: (leafId: string | null) => [
         { type: "message", id: "entry-1", leafId, role: "user", content: "parent request" },
@@ -81,6 +83,13 @@ describe("fork command handlers", () => {
     expect(snapshot.model).toEqual({ provider: "openai-codex", id: "gpt-5.4-mini" });
     expect(snapshot.thinkingLevel).toBe("medium");
     expect(snapshot.activeTools).toEqual(["read", "bash"]);
+
+    const parentRecords = readFileSync(join(sessionDir, "parent.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    expect(parentRecords[0]).toMatchObject({ type: "session", cwd: process.cwd() });
+    expect(parentRecords.slice(1)).toHaveLength(2);
 
     const records = readFileSync(snapshot.forkSessionFile, "utf8")
       .trim()

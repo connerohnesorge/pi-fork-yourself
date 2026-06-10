@@ -41,6 +41,44 @@ export function makeShellScript(command: string, args: string[], cwd: string): s
   return `cd ${shellQuote(cwd)} && exec ${toShellCommand(command, args)}`;
 }
 
+function envFlagEnabled(value: string | undefined): boolean {
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
+/**
+ * Build the script used inside newly-opened terminal windows/tabs.
+ *
+ * Do not use `exec pi ...` here. If Pi fails during startup, or if a terminal is
+ * configured to close on child-process exit, replacing the shell makes the new
+ * tab disappear immediately and looks like the terminal crashed. By default we
+ * run Pi as a child and then drop into an interactive shell so the user can see
+ * any failure and keep working in the forked context. Set
+ * PI_FORK_YOURSELF_CLOSE_ON_EXIT=1 to opt back into the old close-on-exit
+ * behavior.
+ */
+export function makeTerminalShellScript(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  if (envFlagEnabled(env.PI_FORK_YOURSELF_CLOSE_ON_EXIT)) return makeShellScript(command, args, cwd);
+
+  const shell = defaultShell(env);
+  const shellCommand = toShellCommand(command, args);
+  const interactiveShell = `${shellQuote(shell)} -i`;
+  return [
+    `cd ${shellQuote(cwd)} || { echo ${shellQuote(`[pi-fork-yourself] unable to cd into ${cwd}`)}; exec ${interactiveShell}; }`,
+    `echo ${shellQuote("[pi-fork-yourself] launching forked Pi session")}`,
+    shellCommand,
+    "status=$?",
+    `echo ${shellQuote("")}`,
+    'echo "[pi-fork-yourself] forked Pi process exited with status $status."',
+    `echo ${shellQuote("[pi-fork-yourself] leaving this tab open; exit the shell when finished.")}`,
+    `exec ${interactiveShell}`,
+  ].join("; ");
+}
+
 function appleScriptString(value: string): string {
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }

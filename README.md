@@ -2,7 +2,7 @@
 
 Pi package that adds two slash commands for forking the current Pi session without replacing the parent session.
 
-- `/fork-yourself [--dry-run] <prompt>` creates a forked session file from the current active branch, starts a background `pi --mode json -p` process against that fork, and posts the result back into the parent session.
+- `/fork-yourself [--dry-run] <prompt>` creates a forked session file from the current active branch, starts a background `pi --mode json -p` process against that fork, and posts the result back into the parent session. If the parent Pi runtime exits before the child finishes, the result is appended directly to the source session file instead of being dropped.
 - `/fork-yourself-tab [--dry-run] [--terminal auto|ghostty|terminal|alacritty|wezterm] [prompt]` creates the same forked session file and opens it in a new terminal session/window.
 
 ## Install
@@ -30,11 +30,13 @@ pi -e ./src/index.ts
 
 Both commands support `--dry-run` for safe smoke verification: `/fork-yourself` creates the fork session and formats the would-run result without spawning a model call; `/fork-yourself-tab` creates the fork session and formats the launch command without opening a terminal.
 
+`/fork-yourself-tab` intentionally keeps the new terminal session open after the child `pi` process exits. This prevents terminals configured to close-on-exit from disappearing immediately if Pi fails to start, which can look like a terminal crash. If you prefer the tab/window to close as soon as Pi exits, set `PI_FORK_YOURSELF_CLOSE_ON_EXIT=1` before running Pi.
+
 Terminal support:
 
 - `ghostty`: on macOS uses `open -na Ghostty.app --args --working-directory=<cwd> -e <shell> -lc <script>` (Ghostty's CLI documents direct launch as unsupported on macOS); elsewhere tries `ghostty +new-window -e ...`, then `ghostty --working-directory=<cwd> -e ...`.
 - `Terminal.app`: uses `osascript` to activate Terminal and run the fork command.
-- `alacritty`: uses `alacritty --working-directory <cwd> -e <shell> -lc <script>`, resolving the macOS app-bundle executable when no CLI shim is on `PATH`.
+- `alacritty`: uses `alacritty --working-directory <cwd> -e <shell> -lc <script>`, resolving the macOS app-bundle executable when no CLI shim is on `PATH`. Alacritty does not provide native tabs, so this opens a new window/session.
 - `wezterm`: tries `wezterm cli spawn --cwd <cwd> -- ...`, then `wezterm start --cwd <cwd> -- ...`, also resolving the macOS app-bundle executable when present.
 
 `auto` prefers the current terminal from environment (`TERM_PROGRAM`, `ALACRITTY_SOCKET`, `PI_FORK_YOURSELF_TERMINAL`) and then falls back to installed commands/app bundles.
