@@ -27,6 +27,12 @@ describe("parseForkCommandArgs", () => {
       help: false,
       dryRun: false,
     });
+    expect(parseForkCommandArgs("--terminal cmux continue here")).toEqual({
+      prompt: "continue here",
+      terminal: "cmux",
+      help: false,
+      dryRun: false,
+    });
   });
 
   it("keeps quoted prompt sections together", () => {

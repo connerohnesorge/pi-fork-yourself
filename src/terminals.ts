@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 import type { SupportedTerminal, TerminalLaunch, TerminalLaunchResult } from "./types.js";
 
-const TERMINALS: Array<Exclude<SupportedTerminal, "auto">> = ["ghostty", "terminal", "alacritty", "wezterm"];
+const TERMINALS: Array<Exclude<SupportedTerminal, "auto">> = ["cmux", "ghostty", "terminal", "alacritty", "wezterm"];
 
 type LaunchOptions = {
   env?: NodeJS.ProcessEnv;
@@ -13,7 +13,11 @@ type LaunchOptions = {
   resolveCommand?: (command: string) => string | undefined;
 };
 
-const MACOS_APP_EXECUTABLES: Record<"ghostty" | "alacritty" | "wezterm", string[]> = {
+const MACOS_APP_EXECUTABLES: Record<"cmux" | "ghostty" | "alacritty" | "wezterm", string[]> = {
+  cmux: [
+    "/Applications/cmux.app/Contents/Resources/bin/cmux",
+    join(homedir(), "Applications", "cmux.app", "Contents", "Resources", "bin", "cmux"),
+  ],
   ghostty: [
     "/Applications/Ghostty.app/Contents/MacOS/ghostty",
     join(homedir(), "Applications", "Ghostty.app", "Contents", "MacOS", "ghostty"),
@@ -142,11 +146,13 @@ export function terminalOrder(
   if (TERMINALS.includes(explicit as Exclude<SupportedTerminal, "auto">)) {
     pushUnique(order, explicit as Exclude<SupportedTerminal, "auto">);
   }
+  if (termProgram.includes("cmux") || env.CMUX_WORKSPACE_ID || env.CMUX_SURFACE_ID || env.CMUX_WINDOW_ID) pushUnique(order, "cmux");
   if (termProgram.includes("ghostty")) pushUnique(order, "ghostty");
   if (termProgram.includes("wezterm")) pushUnique(order, "wezterm");
   if (termProgram.includes("apple_terminal") || termProgram.includes("terminal")) pushUnique(order, "terminal");
   if (env.ALACRITTY_SOCKET) pushUnique(order, "alacritty");
 
+  if (exists("cmux", env)) pushUnique(order, "cmux");
   if (exists("ghostty", env)) pushUnique(order, "ghostty");
   if (exists("wezterm", env)) pushUnique(order, "wezterm");
   if (exists("alacritty", env)) pushUnique(order, "alacritty");
@@ -154,7 +160,7 @@ export function terminalOrder(
 
   if (order.length === 0) {
     // Return all known adapters as a last diagnostic-friendly attempt order.
-    return ["ghostty", "wezterm", "alacritty", ...(platform === "darwin" ? (["terminal"] as const) : [])];
+    return ["cmux", "ghostty", "wezterm", "alacritty", ...(platform === "darwin" ? (["terminal"] as const) : [])];
   }
   return order;
 }
@@ -177,6 +183,15 @@ export function terminalLaunchesFor(
   const resolve = commandResolver(options);
 
   switch (terminal) {
+    case "cmux":
+      return [
+        {
+          terminal,
+          label: "cmux new-workspace",
+          command: resolve("cmux"),
+          args: ["new-workspace", "--name", "fork-yourself", "--cwd", cwd, "--command", shellScript, "--focus", "true"],
+        },
+      ];
     case "ghostty":
       if (platform === "darwin") {
         return [

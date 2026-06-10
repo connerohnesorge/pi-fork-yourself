@@ -1,10 +1,10 @@
 import type { ParsedForkCommandArgs, SupportedTerminal } from "./types.js";
 
-const SUPPORTED_TERMINALS = new Set<SupportedTerminal>(["auto", "ghostty", "terminal", "alacritty", "wezterm"]);
+const SUPPORTED_TERMINALS = new Set<SupportedTerminal>(["auto", "cmux", "ghostty", "terminal", "alacritty", "wezterm"]);
 
 export const FORK_YOURSELF_USAGE = `Usage:
   /fork-yourself [--dry-run] <prompt for the forked agent>
-  /fork-yourself-tab [--dry-run] [--terminal auto|ghostty|terminal|alacritty|wezterm] [prompt]
+  /fork-yourself-tab [--dry-run] [--terminal auto|cmux|ghostty|terminal|alacritty|wezterm] [prompt]
 
 Examples:
   /fork-yourself Review the current diff and suggest risks.

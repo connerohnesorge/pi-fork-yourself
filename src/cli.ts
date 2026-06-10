@@ -7,13 +7,13 @@ const HELP = `pi-fork-yourself local harness
 
 Usage:
   bun ./src/cli.ts --help
-  bun ./src/cli.ts terminal --adapter ghostty|terminal|alacritty|wezterm --command <shell-command> [--cwd <dir>]
+  bun ./src/cli.ts terminal --adapter cmux|ghostty|terminal|alacritty|wezterm --command <shell-command> [--cwd <dir>]
   bun ./src/cli.ts fork-args --prompt <prompt> [--session <file>] [--session-dir <dir>] [--cwd <dir>]
 
 This harness is intentionally deterministic: it prints generated commands without opening terminals or calling a model.
 Pi slash commands provided by the extension:
   /fork-yourself [--dry-run] <prompt>
-  /fork-yourself-tab [--dry-run] [--terminal auto|ghostty|terminal|alacritty|wezterm] [prompt]
+  /fork-yourself-tab [--dry-run] [--terminal auto|cmux|ghostty|terminal|alacritty|wezterm] [prompt]
 `;
 
 function readOption(args: string[], name: string, fallback?: string): string | undefined {
@@ -49,7 +49,7 @@ function printJson(value: unknown): void {
 }
 
 function isSupportedTerminal(value: string): value is Exclude<SupportedTerminal, "auto"> {
-  return value === "ghostty" || value === "terminal" || value === "alacritty" || value === "wezterm";
+  return value === "cmux" || value === "ghostty" || value === "terminal" || value === "alacritty" || value === "wezterm";
 }
 
 function terminalCommand(args: string[]): void {

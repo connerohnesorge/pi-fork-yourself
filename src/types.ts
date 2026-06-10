@@ -2,7 +2,7 @@ import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 
 export const CUSTOM_MESSAGE_TYPE = "fork-yourself";
 
-export type SupportedTerminal = "auto" | "ghostty" | "terminal" | "alacritty" | "wezterm";
+export type SupportedTerminal = "auto" | "cmux" | "ghostty" | "terminal" | "alacritty" | "wezterm";
 
 export interface ModelSnapshot {
   provider: string;

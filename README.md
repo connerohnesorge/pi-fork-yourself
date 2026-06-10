@@ -3,7 +3,7 @@
 Pi package that adds two slash commands for forking the current Pi session without replacing the parent session.
 
 - `/fork-yourself [--dry-run] <prompt>` creates a forked session file from the current active branch, starts a background `pi --mode json -p` process against that fork, and posts the result back into the parent session. If the parent Pi runtime exits before the child finishes, the result is appended directly to the source session file instead of being dropped.
-- `/fork-yourself-tab [--dry-run] [--terminal auto|ghostty|terminal|alacritty|wezterm] [prompt]` creates the same forked session file and opens it in a new terminal session/window.
+- `/fork-yourself-tab [--dry-run] [--terminal auto|cmux|ghostty|terminal|alacritty|wezterm] [prompt]` creates the same forked session file and opens it in a new terminal session/window.
 
 ## Install
 
@@ -23,6 +23,7 @@ pi -e ./src/index.ts
 ```text
 /fork-yourself Review the current diff and identify risks.
 /fork-yourself --dry-run Verify command wiring without calling a model.
+/fork-yourself-tab --terminal cmux Continue this investigation in a cmux workspace.
 /fork-yourself-tab --terminal ghostty Continue this investigation in a new tab.
 /fork-yourself-tab --dry-run --terminal wezterm Verify tab launch wiring without opening a terminal.
 /fork-yourself-tab
@@ -34,12 +35,13 @@ Both commands support `--dry-run` for safe smoke verification: `/fork-yourself` 
 
 Terminal support:
 
+- `cmux`: uses `cmux new-workspace --name fork-yourself --cwd <cwd> --command <script> --focus true`, creating a new focused cmux workspace and sending the fork command to its terminal.
 - `ghostty`: on macOS uses `open -na Ghostty.app --args --working-directory=<cwd> -e <shell> -lc <script>` (Ghostty's CLI documents direct launch as unsupported on macOS); elsewhere tries `ghostty +new-window -e ...`, then `ghostty --working-directory=<cwd> -e ...`.
 - `Terminal.app`: uses `osascript` to activate Terminal and run the fork command.
 - `alacritty`: uses `alacritty --working-directory <cwd> -e <shell> -lc <script>`, resolving the macOS app-bundle executable when no CLI shim is on `PATH`. Alacritty does not provide native tabs, so this opens a new window/session.
 - `wezterm`: tries `wezterm cli spawn --cwd <cwd> -- ...`, then `wezterm start --cwd <cwd> -- ...`, also resolving the macOS app-bundle executable when present.
 
-`auto` prefers the current terminal from environment (`TERM_PROGRAM`, `ALACRITTY_SOCKET`, `PI_FORK_YOURSELF_TERMINAL`) and then falls back to installed commands/app bundles.
+`auto` prefers the current terminal from environment (`TERM_PROGRAM`, `CMUX_WORKSPACE_ID`, `CMUX_SURFACE_ID`, `ALACRITTY_SOCKET`, `PI_FORK_YOURSELF_TERMINAL`) and then falls back to installed commands/app bundles.
 
 ## What gets cloned
 

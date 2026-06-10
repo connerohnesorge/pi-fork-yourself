@@ -56,6 +56,7 @@ describe("terminal adapter dry-runs", () => {
 
   it("detects current terminal from environment", () => {
     expect(terminalOrder("auto", { TERM_PROGRAM: "WezTerm", PATH: "" }, "darwin", () => false)[0]).toBe("wezterm");
+    expect(terminalOrder("auto", { CMUX_WORKSPACE_ID: "workspace:1", PATH: "" }, "darwin", () => false)[0]).toBe("cmux");
   });
 
   it("detects installed app-bundle commands on macOS", () => {
@@ -65,6 +66,19 @@ describe("terminal adapter dry-runs", () => {
     } else {
       expect(found).toBeUndefined();
     }
+
+    const cmux = findCommand("cmux", { PATH: "" }, "darwin");
+    if (process.platform === "darwin" && commandExists("/Applications/cmux.app/Contents/Resources/bin/cmux")) {
+      expect(cmux).toBe("/Applications/cmux.app/Contents/Resources/bin/cmux");
+    } else {
+      expect(cmux).toBeUndefined();
+    }
+  });
+
+  it("builds cmux new-workspace launch", () => {
+    const launch = terminalLaunchesFor("cmux", "echo hi", "/repo", { resolveCommand: passthroughResolver })[0];
+    expect(launch).toMatchObject({ terminal: "cmux", label: "cmux new-workspace", command: "cmux" });
+    expect(launch?.args).toEqual(["new-workspace", "--name", "fork-yourself", "--cwd", "/repo", "--command", "echo hi", "--focus", "true"]);
   });
 
   it("builds Ghostty.app launch through macOS open --args", () => {
