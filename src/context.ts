@@ -5,7 +5,7 @@ import type { ExtensionAPI, ExtensionCommandContext, SessionEntry, SessionHeader
 import { CURRENT_SESSION_VERSION } from "@earendil-works/pi-coding-agent";
 import type { ForkSessionMaterialization, ForkSnapshot, ModelSnapshot } from "./types.js";
 
-export const PUBLIC_API_LIMITATIONS = [
+const PUBLIC_API_LIMITATIONS = [
   "Prompt cache state is provider/runtime-internal; Pi does not expose a public API to clone a live prompt cache into another process.",
   "The forked process recomputes the system prompt from the same cwd, config, packages, context files, skills, and active tool allowlist instead of receiving a public raw prompt-cache clone.",
   "Temporary in-memory extension state and one-off CLI extension paths are only preserved when those extensions are discoverable again in the forked process.",
