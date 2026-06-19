@@ -1,61 +1,63 @@
 {
-  "name": "pi-fork-yourself",
-  "version": "0.1.0",
-  "description": "Pi package that forks the current Pi session into a background agent or a new terminal tab.",
-  "type": "module",
-  "license": "MIT",
-  "author": "Conner Ohnesorge",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/connerohnesorge/pi-fork-yourself.git"
-  },
-  "homepage": "https://github.com/connerohnesorge/pi-fork-yourself#readme",
-  "bugs": {
-    "url": "https://github.com/connerohnesorge/pi-fork-yourself/issues"
-  },
-  "keywords": [
-    "pi-package",
-    "pi",
-    "pi-extension",
-    "fork",
-    "terminal"
-  ],
-  "pi": {
-    "extensions": [
-      "./src/index.ts"
-    ]
-  },
-  "files": [
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "check": "tsc --noEmit",
-    "test": "vitest --run",
-    "build": "npm run check",
-    "validate": "npm run check && npm run test",
-    "cli": "bun ./src/cli.ts"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-agent-core": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-ai": "^0.78.0",
-    "@earendil-works/pi-agent-core": "^0.78.0",
-    "@earendil-works/pi-coding-agent": "^0.78.0",
-    "@earendil-works/pi-tui": "^0.78.0",
-    "@types/node": "^24.12.4",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
-  },
-  "engines": {
-    "node": ">=22.19.0"
-  },
-  "bin": {
-    "pi-fork-yourself": "./src/cli.ts"
-  }
+	"name": "pi-fork-yourself",
+	"version": "0.1.0",
+	"description": "Pi package that forks the current Pi session into a background agent or a new terminal tab.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Conner Ohnesorge",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/connerohnesorge/pi-fork-yourself.git"
+	},
+	"homepage": "https://github.com/connerohnesorge/pi-fork-yourself#readme",
+	"bugs": {
+		"url": "https://github.com/connerohnesorge/pi-fork-yourself/issues"
+	},
+	"keywords": [
+		"pi-package",
+		"pi",
+		"pi-extension",
+		"fork",
+		"terminal"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"files": [
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"check": "npm run typecheck && npm run test && npm run pack:dry",
+		"test": "vitest --run",
+		"build": "npm run typecheck",
+		"validate": "npm run check",
+		"cli": "bun ./src/cli.ts",
+		"typecheck": "tsc --noEmit",
+		"pack:dry": "npm pack --dry-run"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-ai": "*",
+		"@earendil-works/pi-agent-core": "*",
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-ai": "^0.78.0",
+		"@earendil-works/pi-agent-core": "^0.78.0",
+		"@earendil-works/pi-coding-agent": "^0.78.0",
+		"@earendil-works/pi-tui": "^0.78.0",
+		"@types/node": "^24.12.4",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"bin": {
+		"pi-fork-yourself": "./src/cli.ts"
+	}
 }
