@@ -190,6 +190,7 @@ export function terminalLaunchesFor(
           label: "cmux new-workspace",
           command: resolve("cmux"),
           args: ["new-workspace", "--name", "fork-yourself", "--cwd", cwd, "--command", shellScript, "--focus", "true"],
+          waitForExit: true,
         },
       ];
     case "ghostty":
@@ -200,6 +201,7 @@ export function terminalLaunchesFor(
             label: "Ghostty.app",
             command: resolve("open"),
             args: ["-na", "Ghostty.app", "--args", `--working-directory=${cwd}`, "-e", shell, "-lc", shellScript],
+            waitForExit: true,
           },
         ];
       }
@@ -219,6 +221,7 @@ export function terminalLaunchesFor(
             "-e",
             `tell application "Terminal" to do script ${appleScriptString(shellScript)}`,
           ],
+          waitForExit: true,
         },
       ];
     case "alacritty":
@@ -237,6 +240,7 @@ export function terminalLaunchesFor(
           label: "wezterm cli spawn",
           command: resolve("wezterm"),
           args: ["cli", "spawn", "--cwd", cwd, "--", shell, "-lc", shellScript],
+          waitForExit: true,
         },
         {
           terminal,
@@ -257,12 +261,14 @@ async function tryLaunch(launch: TerminalLaunch, cwd: string): Promise<TerminalL
     });
 
     let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.unref();
-      resolve(launch);
-    }, 350);
+    const timer = launch.waitForExit
+      ? undefined
+      : setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          child.unref();
+          resolve(launch);
+        }, 350);
 
     child.once("error", (error) => {
       if (settled) return;
