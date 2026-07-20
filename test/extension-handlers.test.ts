@@ -90,6 +90,16 @@ describe("fork command handlers", () => {
     expect(records[0]).toMatchObject({ type: "session", cwd: process.cwd(), parentSession: parentSessionFile });
     expect(records.slice(1)).toHaveLength(2);
     expect(records[1]).toMatchObject({ type: "message", message: { role: "user", content: "parent request" } });
+
+    await expect(appendVisibleMessageToSourceSession(snapshot, "late fork result", { status: "complete" })).resolves.toBe(true);
+    expect(SessionManager.open(parentSessionFile).getLeafEntry()).toMatchObject({
+      type: "custom_message",
+      parentId: snapshot.sourceLeafId,
+      customType: "fork-yourself",
+      content: "late fork result",
+      display: true,
+      details: { status: "complete" },
+    });
   });
 
   it("/fork-yourself-tab --dry-run generates a terminal launch script for the forked session", async () => {
