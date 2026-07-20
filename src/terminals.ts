@@ -13,6 +13,10 @@ type LaunchOptions = {
   resolveCommand?: (command: string) => string | undefined;
 };
 
+type TerminalLaunchStrategy = TerminalLaunch & {
+  kind: "launcher" | "terminal";
+};
+
 const MACOS_APP_EXECUTABLES: Record<"cmux" | "ghostty" | "alacritty" | "wezterm", string[]> = {
   cmux: [
     "/Applications/cmux.app/Contents/Resources/bin/cmux",
@@ -172,12 +176,12 @@ function commandResolver(options: LaunchOptions): (command: string) => string {
   return (command: string) => resolveCommand(command) ?? command;
 }
 
-export function terminalLaunchesFor(
+function terminalLaunchStrategiesFor(
   terminal: Exclude<SupportedTerminal, "auto">,
   shellScript: string,
   cwd: string,
   options: LaunchOptions = {},
-): TerminalLaunch[] {
+): TerminalLaunchStrategy[] {
   const platform = options.platform ?? process.platform;
   const shell = options.shell ?? defaultShell(options.env);
   const resolve = commandResolver(options);
@@ -186,6 +190,7 @@ export function terminalLaunchesFor(
     case "cmux":
       return [
         {
+          kind: "launcher",
           terminal,
           label: "cmux new-workspace",
           command: resolve("cmux"),
@@ -196,6 +201,7 @@ export function terminalLaunchesFor(
       if (platform === "darwin") {
         return [
           {
+            kind: "launcher",
             terminal,
             label: "Ghostty.app",
             command: resolve("open"),
@@ -204,12 +210,13 @@ export function terminalLaunchesFor(
         ];
       }
       return [
-        { terminal, label: "ghostty +new-window", command: resolve("ghostty"), args: ["+new-window", "-e", shell, "-lc", shellScript] },
-        { terminal, label: "ghostty", command: resolve("ghostty"), args: [`--working-directory=${cwd}`, "-e", shell, "-lc", shellScript] },
+        { kind: "terminal", terminal, label: "ghostty +new-window", command: resolve("ghostty"), args: ["+new-window", "-e", shell, "-lc", shellScript] },
+        { kind: "terminal", terminal, label: "ghostty", command: resolve("ghostty"), args: [`--working-directory=${cwd}`, "-e", shell, "-lc", shellScript] },
       ];
     case "terminal":
       return [
         {
+          kind: "launcher",
           terminal,
           label: "Terminal.app",
           command: resolve("osascript"),
@@ -224,6 +231,7 @@ export function terminalLaunchesFor(
     case "alacritty":
       return [
         {
+          kind: "terminal",
           terminal,
           label: "alacritty",
           command: resolve("alacritty"),
@@ -233,12 +241,14 @@ export function terminalLaunchesFor(
     case "wezterm":
       return [
         {
+          kind: "launcher",
           terminal,
           label: "wezterm cli spawn",
           command: resolve("wezterm"),
           args: ["cli", "spawn", "--cwd", cwd, "--", shell, "-lc", shellScript],
         },
         {
+          kind: "terminal",
           terminal,
           label: "wezterm start",
           command: resolve("wezterm"),
@@ -248,8 +258,17 @@ export function terminalLaunchesFor(
   }
 }
 
-async function tryLaunch(launch: TerminalLaunch, cwd: string): Promise<TerminalLaunch> {
-  return await new Promise<TerminalLaunch>((resolve, reject) => {
+export function terminalLaunchesFor(
+  terminal: Exclude<SupportedTerminal, "auto">,
+  shellScript: string,
+  cwd: string,
+  options: LaunchOptions = {},
+): TerminalLaunch[] {
+  return terminalLaunchStrategiesFor(terminal, shellScript, cwd, options).map(({ kind: _, ...launch }) => launch);
+}
+
+async function tryLaunch(launch: TerminalLaunchStrategy, cwd: string): Promise<void> {
+  return await new Promise<void>((resolve, reject) => {
     const child = spawn(launch.command, launch.args, {
       cwd,
       detached: true,
@@ -257,12 +276,15 @@ async function tryLaunch(launch: TerminalLaunch, cwd: string): Promise<TerminalL
     });
 
     let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.unref();
-      resolve(launch);
-    }, 350);
+    const timer =
+      launch.kind === "launcher"
+        ? undefined
+        : setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            child.unref();
+            resolve();
+          }, 350);
 
     child.once("error", (error) => {
       if (settled) return;
@@ -276,7 +298,7 @@ async function tryLaunch(launch: TerminalLaunch, cwd: string): Promise<TerminalL
       settled = true;
       clearTimeout(timer);
       if (code === 0) {
-        resolve(launch);
+        resolve();
       } else {
         reject(new Error(`${launch.label} exited with ${signal ?? code}`));
       }
@@ -291,12 +313,13 @@ export async function openTerminal(
 ): Promise<TerminalLaunchResult> {
   const errors: string[] = [];
   for (const terminal of terminalOrder(requested)) {
-    for (const launch of terminalLaunchesFor(terminal, shellScript, cwd)) {
+    for (const strategy of terminalLaunchStrategiesFor(terminal, shellScript, cwd)) {
       try {
-        const launched = await tryLaunch(launch, cwd);
-        return { ...launched, shellScript };
+        await tryLaunch(strategy, cwd);
+        const { kind: _, ...launch } = strategy;
+        return { ...launch, shellScript };
       } catch (error) {
-        errors.push(`${launch.label}: ${error instanceof Error ? error.message : String(error)}`);
+        errors.push(`${strategy.label}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
