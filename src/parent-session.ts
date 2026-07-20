@@ -24,6 +24,8 @@ export async function appendVisibleMessageToSourceSession(
   if (!snapshot.sourceSessionFile) return false;
 
   const currentContent = await readFile(snapshot.sourceSessionFile, "utf8").catch(() => "");
+  if (!currentContent) return false;
+
   const parentId = latestEntryId(currentContent) ?? snapshot.sourceLeafId ?? null;
   const entry = {
     type: "custom_message",

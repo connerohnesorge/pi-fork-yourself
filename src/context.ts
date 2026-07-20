@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext, SessionEntry, SessionHeader } from "@earendil-works/pi-coding-agent";
 import { CURRENT_SESSION_VERSION } from "@earendil-works/pi-coding-agent";
@@ -33,40 +33,6 @@ function getActiveBranchEntries(ctx: ExtensionCommandContext): SessionEntry[] {
   return ctx.sessionManager.getBranch(leafId);
 }
 
-async function ensureSourceSessionFile(
-  ctx: ExtensionCommandContext,
-  sourceSessionFile: string | undefined,
-  entries: SessionEntry[],
-  fallbackTimestamp: string,
-): Promise<void> {
-  if (!sourceSessionFile) return;
-
-  const existing = await readFile(sourceSessionFile, "utf8").catch(() => "");
-  const firstMeaningfulLine = existing
-    .split("\n")
-    .map((line) => line.trim())
-    .find(Boolean);
-  if (firstMeaningfulLine) {
-    try {
-      const firstEntry = JSON.parse(firstMeaningfulLine) as { type?: unknown };
-      if (firstEntry.type === "session") return;
-    } catch {
-      // Fall through and rewrite malformed/uninitialized files below.
-    }
-  }
-
-  const existingHeader = ctx.sessionManager.getHeader();
-  const header: SessionHeader = existingHeader ?? {
-    type: "session",
-    version: CURRENT_SESSION_VERSION,
-    id: ctx.sessionManager.getSessionId(),
-    timestamp: fallbackTimestamp,
-    cwd: ctx.cwd,
-  };
-  const content = [header, ...entries].map((entry) => JSON.stringify(entry)).join("\n") + "\n";
-  await writeFile(sourceSessionFile, content, { encoding: "utf8", mode: 0o600 });
-}
-
 export async function materializeForkSession(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
@@ -91,8 +57,6 @@ export async function materializeForkSession(
     cwd: ctx.cwd,
     ...(sourceSessionFile ? { parentSession: sourceSessionFile } : {}),
   };
-
-  await ensureSourceSessionFile(ctx, sourceSessionFile, entries, createdAt);
 
   const content = [header, ...entries].map((entry) => JSON.stringify(entry)).join("\n") + "\n";
   await writeFile(forkSessionFile, content, { encoding: "utf8", flag: "wx", mode: 0o600 });
