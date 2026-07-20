@@ -76,7 +76,6 @@ export interface TerminalLaunch {
   label: string;
   command: string;
   args: string[];
-  waitForExit?: boolean;
 }
 
 export interface TerminalLaunchResult extends TerminalLaunch {

@@ -78,7 +78,7 @@ describe("terminal adapter dry-runs", () => {
 
   it("builds cmux new-workspace launch", () => {
     const launch = terminalLaunchesFor("cmux", "echo hi", "/repo", { resolveCommand: passthroughResolver })[0];
-    expect(launch).toMatchObject({ terminal: "cmux", label: "cmux new-workspace", command: "cmux", waitForExit: true });
+    expect(launch).toMatchObject({ terminal: "cmux", label: "cmux new-workspace", command: "cmux" });
     expect(launch?.args).toEqual(["new-workspace", "--name", "fork-yourself", "--cwd", "/repo", "--command", "echo hi", "--focus", "true"]);
   });
 
@@ -89,7 +89,7 @@ describe("terminal adapter dry-runs", () => {
       resolveCommand: passthroughResolver,
     })[0];
 
-    expect(launch).toMatchObject({ terminal: "ghostty", label: "Ghostty.app", command: "open", waitForExit: true });
+    expect(launch).toMatchObject({ terminal: "ghostty", label: "Ghostty.app", command: "open" });
     expect(launch?.args).toEqual(["-na", "Ghostty.app", "--args", "--working-directory=/repo", "-e", "/bin/zsh", "-lc", "echo hi"]);
   });
 
@@ -109,7 +109,6 @@ describe("terminal adapter dry-runs", () => {
     const launch = terminalLaunchesFor("terminal", "echo hi", "/repo", { resolveCommand: passthroughResolver })[0];
     expect(launch?.command).toBe("osascript");
     expect(launch?.args.join("\n")).toContain("Terminal");
-    expect(launch?.waitForExit).toBe(true);
   });
 
   it("builds alacritty launch with app-bundle resolution", () => {
@@ -122,7 +121,6 @@ describe("terminal adapter dry-runs", () => {
       command: "/Applications/Alacritty.app/Contents/MacOS/alacritty",
       terminal: "alacritty",
     });
-    expect(launch?.waitForExit).toBeUndefined();
     expect(launch?.args).toEqual(["--working-directory", "/repo", "-e", "/bin/zsh", "-lc", "echo hi"]);
   });
 
@@ -135,7 +133,6 @@ describe("terminal adapter dry-runs", () => {
     expect(launches.map((launch) => launch.label)).toEqual(["wezterm cli spawn", "wezterm start"]);
     expect(launches[0]?.args).toEqual(["cli", "spawn", "--cwd", "/repo", "--", "/bin/zsh", "-lc", "echo hi"]);
     expect(launches[1]?.args).toEqual(["start", "--cwd", "/repo", "--", "/bin/zsh", "-lc", "echo hi"]);
-    expect(launches.map((launch) => launch.waitForExit)).toEqual([true, undefined]);
   });
 
   it("waits for delayed wezterm CLI failure, falls back, and detaches wezterm start", async () => {
@@ -161,6 +158,7 @@ describe("terminal adapter dry-runs", () => {
     try {
       const launch = await openTerminal("wezterm", "echo hi", dir);
       expect(launch.label).toBe("wezterm start");
+      expect(launch).not.toHaveProperty("kind");
       expect(readFileSync(attempts, "utf8").trim().split("\n")).toEqual(["cli", "start"]);
       pid = Number(readFileSync(pidFile, "utf8"));
       expect(process.kill(pid, 0)).toBe(true);
