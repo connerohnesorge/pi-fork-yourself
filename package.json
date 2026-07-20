@@ -54,8 +54,5 @@
 	},
 	"engines": {
 		"node": ">=22.19.0"
-	},
-	"bin": {
-		"pi-fork-yourself": "./src/cli.ts"
 	}
 }
